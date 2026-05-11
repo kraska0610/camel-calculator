@@ -1,0 +1,1967 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>The Camel Calculator</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=EB+Garamond:ital,wght@0,400;0,500;0,600;0,700;0,800;1,400;1,500;1,600;1,700;1,800&family=Jost:wght@300;400;500;600&display=swap" rel="stylesheet" />
+<style>
+  :root {
+    --cream: #f5ebd6;
+    --cream-dark: #ead8b4;
+    --terracotta: #c85a3d;
+    --terracotta-dark: #9e4229;
+    --brown: #2a1a0e;
+    --brown-soft: #4a3422;
+    --gold: #d4a24a;
+    --sand: #e4c998;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  html, body { height: 100%; }
+
+  body {
+    font-family: 'Jost', sans-serif;
+    background: var(--cream);
+    color: var(--brown);
+    min-height: 100vh;
+    position: relative;
+    overflow-x: hidden;
+    line-height: 1.5;
+  }
+
+  /* grainy paper texture */
+  body::before {
+    content: '';
+    position: fixed; inset: 0;
+    pointer-events: none;
+    z-index: 1;
+    opacity: 0.35;
+    background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='200' height='200'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 0.17  0 0 0 0 0.1  0 0 0 0 0.05  0 0 0 0.18 0'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>");
+  }
+
+  /* decorative dunes at bottom */
+  .dunes {
+    position: fixed;
+    bottom: 0; left: 0; right: 0;
+    width: 100%;
+    height: 220px;
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  .page {
+    position: relative;
+    z-index: 2;
+    min-height: 100vh;
+    padding: 40px 24px 260px;
+    max-width: 1100px;
+    margin: 0 auto;
+    display: none;
+  }
+  .page.active { display: block; }
+
+  /* --- LANDING --- */
+  .brand {
+    text-align: center;
+    margin-bottom: 14px;
+  }
+  .brand .eyebrow {
+    font-family: 'Jost', sans-serif;
+    font-size: 13px;
+    letter-spacing: 0.35em;
+    text-transform: uppercase;
+    color: var(--terracotta);
+    margin-bottom: 14px;
+    font-weight: 500;
+  }
+  .brand h1 {
+    font-family: 'EB Garamond', serif;
+    font-weight: 800;
+    font-size: clamp(54px, 9vw, 112px);
+    line-height: 0.92;
+    letter-spacing: -0.02em;
+    color: var(--brown);
+  }
+  .brand h1 em {
+    font-style: italic;
+    font-weight: 400;
+    color: var(--terracotta);
+  }
+  .brand .sub {
+    margin-top: 22px;
+    font-size: 17px;
+    color: var(--brown-soft);
+    max-width: 520px;
+    margin-left: auto;
+    margin-right: auto;
+  }
+
+  .scale-hint {
+    margin: 26px auto 0;
+    text-align: center;
+    font-family: 'Jost', sans-serif;
+    font-size: 13px;
+    letter-spacing: 0.25em;
+    text-transform: uppercase;
+    color: var(--brown-soft);
+  }
+  .scale-hint .peak {
+    font-family: 'EB Garamond', serif;
+    font-style: italic;
+    font-size: 28px;
+    letter-spacing: 0;
+    color: var(--terracotta);
+    font-weight: 800;
+    text-transform: none;
+    vertical-align: -2px;
+    margin: 0 4px;
+  }
+  .scale-hint em {
+    font-family: 'EB Garamond', serif;
+    font-style: italic;
+    font-size: 16px;
+    letter-spacing: 0;
+    text-transform: none;
+    color: var(--brown);
+    margin-left: 4px;
+  }
+
+  .choice-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 24px;
+    max-width: 780px;
+    margin: 0 auto;
+  }
+  @media (max-width: 640px) {
+    .choice-grid { grid-template-columns: 1fr; }
+  }
+
+  .choice-card {
+    background: var(--cream-dark);
+    border: 2px solid var(--brown);
+    padding: 36px 30px;
+    text-align: center;
+    cursor: pointer;
+    transition: transform 0.25s ease, background 0.25s ease, box-shadow 0.25s ease;
+    position: relative;
+    overflow: hidden;
+  }
+  .choice-card::after {
+    content: '';
+    position: absolute;
+    inset: 6px;
+    border: 1px solid var(--brown);
+    pointer-events: none;
+    opacity: 0.35;
+  }
+  .choice-card:hover {
+    transform: translateY(-4px) rotate(-0.4deg);
+    background: var(--sand);
+    box-shadow: 8px 8px 0 var(--brown);
+  }
+  .choice-card .icon {
+    width: 92px;
+    height: 92px;
+    margin: 0 auto 18px;
+    display: block;
+  }
+  .choice-card h2 {
+    font-family: 'EB Garamond', serif;
+    font-weight: 600;
+    font-size: 32px;
+    color: var(--brown);
+    margin-bottom: 4px;
+    font-style: italic;
+  }
+  .choice-card p {
+    font-size: 14px;
+    letter-spacing: 0.25em;
+    text-transform: uppercase;
+    color: var(--terracotta-dark);
+    font-weight: 500;
+  }
+
+  .footer-note {
+    margin-top: 40px;
+    text-align: center;
+    font-size: 12px;
+    letter-spacing: 0.25em;
+    text-transform: uppercase;
+    color: var(--brown-soft);
+    opacity: 0.7;
+  }
+
+  /* --- QUIZ --- */
+  .quiz-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    padding-bottom: 22px;
+    border-bottom: 1.5px solid var(--brown);
+    margin-bottom: 30px;
+  }
+  .quiz-header h2 {
+    font-family: 'EB Garamond', serif;
+    font-style: italic;
+    font-weight: 600;
+    font-size: 32px;
+  }
+  .back-btn {
+    display: inline-flex;
+    align-items: center;
+    background: none;
+    border: 1.5px solid var(--brown);
+    padding: 6px 10px;
+    font-family: 'Jost', sans-serif;
+    font-size: 12px;
+    font-weight: 500;
+    letter-spacing: 0.25em;
+    text-transform: uppercase;
+    cursor: pointer;
+    color: var(--brown);
+    transition: background 0.2s;
+    white-space: nowrap;
+  }
+  .back-btn:hover { background: var(--brown); color: var(--cream); }
+
+  .question {
+    margin-bottom: 30px;
+    padding-bottom: 30px;
+    border-bottom: 1px dashed rgba(42, 26, 14, 0.25);
+  }
+  .question:last-of-type { border-bottom: none; }
+
+  .q-head {
+    display: flex;
+    align-items: baseline;
+    gap: 14px;
+    margin-bottom: 16px;
+    line-height: 1;
+  }
+  .q-num {
+    font-family: 'EB Garamond', serif;
+    font-style: italic;
+    font-size: 22px;
+    color: var(--terracotta);
+    font-weight: 400;
+  }
+  .q-label {
+    font-family: 'EB Garamond', serif;
+    font-size: 26px;
+    font-weight: 600;
+    color: var(--brown);
+    letter-spacing: -0.01em;
+  }
+
+  /* slider */
+  .slider-wrap {
+    display: flex;
+    align-items: center;
+    gap: 20px;
+  }
+  .slider-value {
+    font-family: 'EB Garamond', serif;
+    font-weight: 800;
+    font-size: 44px;
+    line-height: 1;
+    min-width: 120px;
+    color: var(--terracotta);
+    font-variant-numeric: tabular-nums;
+  }
+  .slider-value .unit {
+    font-size: 16px;
+    color: var(--brown-soft);
+    font-weight: 400;
+    margin-left: 4px;
+    font-style: italic;
+  }
+  input[type="range"] {
+    flex: 1;
+    -webkit-appearance: none;
+    appearance: none;
+    height: 4px;
+    background: var(--brown);
+    outline: none;
+  }
+  input[type="range"]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 26px;
+    height: 26px;
+    border-radius: 50%;
+    background: var(--terracotta);
+    border: 2px solid var(--brown);
+    cursor: pointer;
+  }
+  input[type="range"]::-moz-range-thumb {
+    width: 26px;
+    height: 26px;
+    border-radius: 50%;
+    background: var(--terracotta);
+    border: 2px solid var(--brown);
+    cursor: pointer;
+  }
+
+  /* option buttons */
+  .options {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+  }
+  .opt {
+    padding: 10px 18px;
+    background: transparent;
+    border: 1.5px solid var(--brown);
+    font-family: 'Jost', sans-serif;
+    font-size: 15px;
+    color: var(--brown);
+    cursor: pointer;
+    transition: all 0.15s ease;
+    font-weight: 400;
+  }
+  .opt:hover {
+    background: var(--sand);
+  }
+  .opt.selected {
+    background: var(--terracotta);
+    color: var(--cream);
+    border-color: var(--terracotta);
+  }
+
+  .calc-wrap {
+    text-align: center;
+    margin-top: 40px;
+  }
+  .calc-btn {
+    background: var(--brown);
+    color: var(--cream);
+    border: none;
+    padding: 22px 60px;
+    font-family: 'EB Garamond', serif;
+    font-style: italic;
+    font-weight: 600;
+    font-size: 24px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    letter-spacing: 0.01em;
+  }
+  .calc-btn:hover {
+    background: var(--terracotta);
+    transform: scale(1.03);
+  }
+  .calc-btn:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+    transform: none;
+  }
+
+  .calc-toast {
+    margin-top: 16px;
+    font-family: 'Jost', sans-serif;
+    font-size: 11px;
+    font-weight: 500;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--terracotta);
+    opacity: 0;
+    transition: opacity 0.3s ease;
+    pointer-events: none;
+    min-height: 1em;
+  }
+  .calc-toast.show { opacity: 1; }
+
+  /* --- RESULT --- */
+  .result-wrap {
+    text-align: center;
+    padding-top: 24px;
+  }
+  .result-eyebrow {
+    font-size: 12px;
+    letter-spacing: 0.35em;
+    text-transform: uppercase;
+    color: var(--terracotta);
+    margin-bottom: 20px;
+    font-weight: 500;
+  }
+  .result-number {
+    font-family: 'EB Garamond', serif;
+    font-weight: 800;
+    font-size: clamp(120px, 22vw, 240px);
+    line-height: 0.9;
+    color: var(--brown);
+    letter-spacing: -0.04em;
+  }
+  .result-unit {
+    font-family: 'EB Garamond', serif;
+    font-style: italic;
+    font-weight: 400;
+    font-size: clamp(28px, 4vw, 44px);
+    color: var(--terracotta);
+    margin-top: 0;
+  }
+  .result-tier {
+    font-family: 'EB Garamond', serif;
+    font-weight: 600;
+    font-style: italic;
+    font-size: clamp(26px, 4vw, 36px);
+    margin-top: 20px;
+    color: var(--brown);
+  }
+  .result-verdict {
+    max-width: 520px;
+    margin: 16px auto 0;
+    font-size: 17px;
+    color: var(--brown-soft);
+    line-height: 1.55;
+  }
+  .camel-row { display: none; }
+  .share-wrap {
+    margin-top: 30px;
+    text-align: center;
+  }
+  .share-label {
+    font-family: 'Jost', sans-serif;
+    font-size: 11px;
+    letter-spacing: 0.25em;
+    text-transform: uppercase;
+    color: var(--brown-soft);
+    margin-bottom: 14px;
+    opacity: 0.85;
+  }
+  .share-row {
+    display: inline-flex;
+    gap: 10px;
+    justify-content: center;
+    flex-wrap: wrap;
+  }
+  .share-btn {
+    width: 46px;
+    height: 46px;
+    border: 1.5px solid var(--brown);
+    background: transparent;
+    color: var(--brown);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.18s ease;
+    padding: 0;
+    border-radius: 0;
+  }
+  .share-btn:hover {
+    background: var(--terracotta);
+    color: var(--cream);
+    border-color: var(--terracotta);
+    transform: translateY(-2px);
+  }
+  .share-btn svg { display: block; }
+  .share-toast {
+    height: 18px;
+    margin-top: 6px;
+    font-family: 'EB Garamond', serif;
+    font-style: italic;
+    font-size: 14px;
+    color: var(--terracotta);
+    opacity: 0;
+    transition: opacity 0.3s ease;
+  }
+  .share-toast.show { opacity: 1; }
+
+  .share-main-btn {
+    display: block;
+    margin: 30px auto 0;
+    background: var(--brown);
+    color: var(--cream);
+    border: none;
+    padding: 22px 60px;
+    font-family: 'EB Garamond', serif;
+    font-style: italic;
+    font-weight: 600;
+    font-size: 24px;
+    letter-spacing: 0.01em;
+    cursor: pointer;
+    transition: all 0.2s ease;
+  }
+  .share-main-btn:hover { background: var(--terracotta); transform: scale(1.03); }
+  .share-main-btn:disabled { opacity: 0.5; cursor: wait; transform: none; }
+
+  .again-btn {
+    display: block;
+    margin: 0 auto 0;
+    background: none;
+    border: none;
+    font-family: 'Jost', sans-serif;
+    font-size: 12px;
+    font-weight: 500;
+    letter-spacing: 0.25em;
+    text-transform: uppercase;
+    color: var(--brown-soft);
+    opacity: 0.6;
+    cursor: pointer;
+    padding: 8px 0;
+    transition: opacity 0.2s;
+  }
+  .again-btn:hover { opacity: 1; }
+
+  .disclaimer {
+    margin-top: 40px;
+    font-size: 11px;
+    letter-spacing: 0.25em;
+    text-transform: uppercase;
+    color: var(--brown-soft);
+    opacity: 0.6;
+  }
+
+  /* progress bar */
+  .progress {
+    position: fixed;
+    top: 0; left: 0;
+    height: 3px;
+    background: var(--terracotta);
+    width: 0%;
+    z-index: 10;
+    transition: width 0.3s ease;
+  }
+
+  /* language toggle (fixed top-right, landing only) */
+  .lang-toggle {
+    position: fixed;
+    top: 18px;
+    right: 24px;
+    z-index: 11;
+    font-family: 'Jost', sans-serif;
+  }
+  .lang-toggle.hidden {
+    opacity: 0;
+    visibility: hidden;
+    pointer-events: none;
+  }
+
+  /* landing: extra top padding so eyebrow clears the toggle with equal
+     spacing above (≈14px) and below (margin-bottom: 14px) */
+  #landing { padding-top: 64px; }
+
+  /* quiz: reduced top padding to align the header row with the toggle's y position */
+  #quiz { padding-top: 18px; }
+  .lang-current {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 10px;
+    background: var(--cream-dark);
+    border: 1.5px solid var(--brown);
+    color: var(--brown);
+    cursor: pointer;
+    transition: background 0.18s ease;
+    font-family: 'Jost', sans-serif;
+  }
+  .lang-current:hover { background: var(--sand); }
+  .lang-flag {
+    display: inline-block;
+    width: 24px;
+    height: 16px;
+    background-size: cover;
+    background-position: center;
+    background-repeat: no-repeat;
+    line-height: 0;
+    overflow: hidden;
+  }
+  .lang-flag svg { display: block; width: 100%; height: 100%; }
+  .lang-code { display: none; }
+  .lang-caret { transition: transform 0.2s ease; }
+  .lang-toggle.open .lang-caret { transform: rotate(180deg); }
+
+  .lang-menu {
+    list-style: none;
+    margin: 4px 0 0;
+    padding: 0;
+    background: var(--cream-dark);
+    border: 1.5px solid var(--brown);
+    min-width: 100%;
+    max-height: 320px;
+    overflow-y: auto;
+    display: none;
+    position: absolute;
+    right: 0;
+    top: 100%;
+  }
+  .lang-toggle.open .lang-menu { display: block; }
+  .lang-menu li {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 8px 12px;
+    cursor: pointer;
+    color: var(--brown);
+    transition: background 0.15s ease;
+    white-space: nowrap;
+  }
+  .lang-menu li:hover { background: var(--sand); }
+  .lang-menu li.active { background: var(--terracotta); color: var(--cream); }
+  .lang-menu li .lang-flag { flex-shrink: 0; }
+  .lang-menu li .lang-name { font-size: 13px; }
+
+  @media (max-width: 480px) {
+    .lang-current { padding: 5px 8px; gap: 6px; }
+    .lang-code { font-size: 11px; }
+  }
+</style>
+</head>
+<body>
+
+<div class="progress" id="progress"></div>
+
+<!-- Language toggle (fixed top-right, landing page only) -->
+<div class="lang-toggle" id="lang-toggle">
+  <button class="lang-current" id="lang-current" onclick="toggleLangMenu(event)" aria-haspopup="listbox" aria-expanded="false" aria-label="Select language">
+    <span class="lang-flag" id="lang-current-flag"></span>
+    <span class="lang-code" id="lang-current-code">EN</span>
+    <svg class="lang-caret" viewBox="0 0 12 8" width="10" height="6" aria-hidden="true">
+      <path d="M1 1 L6 7 L11 1" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+    </svg>
+  </button>
+  <ul class="lang-menu" id="lang-menu" role="listbox"></ul>
+</div>
+
+<!-- DUNE SVG (persistent background) -->
+<svg class="dunes" viewBox="0 0 1440 220" preserveAspectRatio="xMidYMax slice" xmlns="http://www.w3.org/2000/svg">
+  <path d="M0,140 C240,80 420,180 720,120 C1020,60 1200,180 1440,100 L1440,220 L0,220 Z" fill="#e4c998" opacity="0.7"/>
+  <!-- Camel sits between layer 1 and layer 2 — gold dune covers leg bottoms -->
+  <g transform="translate(820, 138) scale(0.4, 0.5)" fill="#2a1a0e" opacity="0.85">
+    <path d="
+      M -88,-20
+      C -84,-28 -82,-36 -80,-40
+      C -76,-44 -70,-46 -64,-44
+      C -58,-42 -52,-38 -48,-34
+      C -44,-26 -40,-22 -36,-22
+      C -30,-22 -20,-40 -14,-48
+      C -4,-50 4,-44 8,-36
+      C 12,-32 16,-38 20,-36
+      C 26,-38 34,-50 42,-52
+      C 50,-50 56,-36 60,-20
+      C 62,-10 62,-2 60,0
+      C 58,0 57,5 54,5
+      C 54,14 55,26 55,50
+      L 43,50
+      C 43,26 44,14 44,3
+      C 43,7 40,7 38,4
+      C 38,14 39,26 39,50
+      L 27,50
+      C 27,26 28,14 28,4
+      C 12,20 -10,20 -30,4
+      C -30,14 -31,26 -31,50
+      L -43,50
+      C -43,26 -42,14 -40,3
+      C -41,7 -44,7 -46,4
+      C -46,14 -47,26 -47,50
+      L -59,50
+      C -59,26 -58,14 -56,3
+      C -58,1 -61,0 -62,0
+      C -64,-6 -66,-14 -68,-18
+      C -70,-12 -74,-8 -80,-8
+      C -83,-10 -86,-14 -88,-20
+      Z
+    "/>
+    <path d="M 56,0 C 60,-4 68,-2 70,10 C 72,20 68,26 64,24 C 60,22 58,14 56,6 C 54,2 54,2 56,0 Z"/>
+  </g>
+  <path d="M0,180 C200,140 500,200 800,160 C1100,120 1260,200 1440,160 L1440,220 L0,220 Z" fill="#d4a24a" opacity="1"/>
+  <path d="M0,210 C300,190 600,220 900,200 C1200,180 1320,220 1440,205 L1440,220 L0,220 Z" fill="#c85a3d" opacity="0.85"/>
+</svg>
+
+<!-- ========== LANDING ========== -->
+<section id="landing" class="page active">
+  <div class="brand">
+    <div class="eyebrow" data-i18n="eyebrow">Est. Somewhere Near the Silk Road</div>
+    <h1 data-i18n-html="title">The <em>Camel</em><br/>Calculator</h1>
+    <p class="sub" data-i18n="intro">An ancient, highly unscientific system for determining a person's true worth in livestock, perfected over centuries in desert bazaars and caravan stops. Results are final, binding, and should not be shared with the valuee.</p>
+    <div class="scale-hint" data-i18n-html="scaleHint">Few reach the mythical <span class="peak">500</span> camels. <em>Can you?</em></div>
+  </div>
+
+  <div class="choice-grid">
+    <div class="choice-card" onclick="startQuiz('female')">
+      <svg class="icon" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg" fill="none" stroke="#2a1a0e" stroke-width="5" stroke-linecap="round">
+        <circle cx="50" cy="35" r="22" fill="#c85a3d"/>
+        <line x1="50" y1="57" x2="50" y2="90"/>
+        <line x1="36" y1="76" x2="64" y2="76"/>
+      </svg>
+      <h2 data-i18n="forHer">For Her</h2>
+      <p data-i18n="calcHer">Calculate Her Worth</p>
+    </div>
+    <div class="choice-card" onclick="startQuiz('male')">
+      <svg class="icon" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg" fill="none" stroke="#2a1a0e" stroke-width="5" stroke-linecap="round" stroke-linejoin="round">
+        <circle cx="42" cy="60" r="22" fill="#c85a3d"/>
+        <line x1="57.5" y1="44.5" x2="84" y2="18"/>
+        <polyline points="66,18 84,18 84,36"/>
+      </svg>
+      <h2 data-i18n="forHim">For Him</h2>
+      <p data-i18n="calcHim">Calculate His Worth</p>
+    </div>
+  </div>
+
+  <p class="footer-note" data-i18n="footer">Not An Actual Dowry Agreement</p>
+</section>
+
+<!-- ========== QUIZ ========== -->
+<section id="quiz" class="page">
+  <div class="quiz-header">
+    <h2 id="quiz-title">The Questionnaire</h2>
+    <button class="back-btn" onclick="goHome()" data-i18n="back">← Back</button>
+  </div>
+  <div id="questions"></div>
+  <div class="calc-wrap">
+    <button class="calc-btn" id="calcBtn" onclick="calculate()" data-i18n="calcBtn">Calculate Camel Value</button>
+    <p class="calc-toast" id="calc-toast"></p>
+  </div>
+</section>
+
+<!-- ========== RESULT ========== -->
+<section id="result" class="page">
+  <div class="result-wrap">
+    <div class="result-eyebrow" data-i18n="yourVerdict">Your Verdict</div>
+    <div class="result-number" id="result-number">0</div>
+    <div class="result-unit" data-i18n="camels">camels</div>
+    <div class="result-tier" id="result-tier"></div>
+    <p class="result-verdict" id="result-verdict"></p>
+
+    <div class="share-wrap">
+      <button class="share-main-btn" id="shareImgBtn" onclick="shareImageCard()" data-i18n="shareLabel">Share</button>
+      <p class="share-toast" id="share-toast"></p>
+    </div>
+
+    <button class="again-btn" onclick="goHome()" data-i18n="tryAgain">Try Again</button>
+  </div>
+</section>
+
+
+<script>
+/* ============================================
+   I18N - TRANSLATIONS
+   ============================================ */
+let currentLang = 'en';
+
+const i18n = {
+  en: {
+    // landing
+    eyebrow: "Est. Somewhere Near the Silk Road",
+    title: "The <em>Camel</em><br/>Calculator",
+    intro: "An ancient, highly unscientific system for determining a person's true worth in livestock, perfected over centuries in desert bazaars and caravan stops. Results are final, binding, and should not be shared with the valuee.",
+    scaleHint: 'Few reach the mythical <span class="peak">500</span> camels. <em>Can you?</em>',
+    forHer: "For Her",
+    forHim: "For Him",
+    calcHer: "Calculate Her Worth",
+    calcHim: "Calculate His Worth",
+    footer: "Not An Actual Dowry Agreement",
+    // quiz
+    quizTitleFemale: "Her Profile",
+    quizTitleMale: "His Profile",
+    back: "← Back",
+    calcBtn: "Calculate Camel Value",
+    yearsUnit: "years",
+    cmUnit: "cm",
+    pleaseAnswer: "The camels are confused. Please answer all questions before we can put a price on you.",
+    // result
+    yourVerdict: "Your Verdict",
+    camels: "camels",
+    shareLabel: "Share",
+    tryAgain: "Try Again",
+    shareText: (n) => `I am worth ${n} camels, according to the Camel Calculator. What are you worth?`,
+    toastCopy: "Link copied to clipboard",
+    toastInsta: "Copied — paste into your Instagram story",
+    toastFail: "Could not copy — select and copy manually",
+    saveImage: "Save Image",
+    // tier names
+    tierMythical: "Mythical",
+    tierRoyalty: "Royalty",
+    tierExtraordinary: "Extraordinary",
+    tierHighlyDesirable: "Highly desirable",
+    tierDesirable: "Desirable",
+    tierFair: "Fair",
+    tierNeedsWork: "Needs work",
+    tierInsulting: "Insulting to the camels"
+  },
+  cs: {
+    // landing
+    eyebrow: "Z dob, kdy se platilo dobytkem",
+    title: "<em>Velbloudí</em><br/>kalkulačka",
+    intro: "Prastarý a vědecky zcela nepodložený systém, jak vyčíslit hodnotu člověka v dobytku. Pilován po staletí na pouštních tržištích a u táboráků karavan. Výsledek je konečný, závazný a hodnocenému se zásadně neukazuje.",
+    scaleHint: 'Mýtických <span class="peak">500</span> velbloudů dosáhne málokdo. <em>A ty?</em>',
+    forHer: "Pro ni",
+    forHim: "Pro něj",
+    calcHer: "Spočítat její cenu",
+    calcHim: "Spočítat jeho cenu",
+    footer: "Toto není svatební smlouva",
+    // quiz
+    quizTitleFemale: "Její profil",
+    quizTitleMale: "Jeho profil",
+    back: "← Zpět",
+    calcBtn: "Spočítat",
+    yearsUnit: "let",
+    cmUnit: "cm",
+    pleaseAnswer: "Velbloudi jsou zmatení. Odpověz na všechny otázky, než stanovíme tvoji cenu.",
+    // result
+    yourVerdict: "Verdikt",
+    camels: "velbloudů",
+    shareLabel: "Pochlub se",
+    tryAgain: "Zkusit znovu",
+    shareText: (n) => `Mám cenu ${n} velbloudů. A ty?`,
+    toastCopy: "Zkopírováno",
+    toastInsta: "Zkopírováno — vlož do storíčka",
+    toastFail: "Nepodařilo se zkopírovat",
+    saveImage: "Uložit obrázek",
+    // tier names
+    tierMythical: "Mýtus",
+    tierRoyalty: "Královská třída",
+    tierExtraordinary: "Výjimečný úkaz",
+    tierHighlyDesirable: "Nadprůměr",
+    tierDesirable: "Slušná partie",
+    tierFair: "Ujde",
+    tierNeedsWork: "Chce to zapracovat",
+    tierInsulting: "Urážka pro velbloudy"
+  }
+};
+
+function t(key) { return i18n[currentLang][key]; }
+
+/* Languages metadata. Adding a language: drop in metadata + add 'xx' block to i18n + verdicts + question opts */
+const languages = [
+  {
+    code: 'en',
+    name: 'English',
+    flag: '<svg viewBox="0 0 60 30" preserveAspectRatio="none"><clipPath id="ft-en-1"><path d="M0,0 v30 h60 v-30 z"/></clipPath><clipPath id="ft-en-2"><path d="M30,15 h30 v15 z v15 h-30 z h-30 v-15 z v-15 h30 z"/></clipPath><g clip-path="url(#ft-en-1)"><path d="M0,0 v30 h60 v-30 z" fill="#012169"/><path d="M0,0 L60,30 M60,0 L0,30" stroke="#fff" stroke-width="6"/><path d="M0,0 L60,30 M60,0 L0,30" clip-path="url(#ft-en-2)" stroke="#C8102E" stroke-width="4"/><path d="M30,0 v30 M0,15 h60" stroke="#fff" stroke-width="10"/><path d="M30,0 v30 M0,15 h60" stroke="#C8102E" stroke-width="6"/></g></svg>'
+  },
+  {
+    code: 'cs',
+    name: 'Čeština',
+    flag: '<svg viewBox="0 0 60 30" preserveAspectRatio="none"><rect width="60" height="15" fill="#fff"/><rect y="15" width="60" height="15" fill="#D7141A"/><path d="M0,0 L30,15 L0,30 z" fill="#11457E"/></svg>'
+  }
+];
+
+function applyI18n() {
+  document.documentElement.lang = currentLang;
+  document.querySelectorAll('[data-i18n]').forEach(el => {
+    const key = el.getAttribute('data-i18n');
+    if (i18n[currentLang][key] !== undefined) el.textContent = i18n[currentLang][key];
+  });
+  document.querySelectorAll('[data-i18n-html]').forEach(el => {
+    const key = el.getAttribute('data-i18n-html');
+    if (i18n[currentLang][key] !== undefined) el.innerHTML = i18n[currentLang][key];
+  });
+  // update toggle button
+  const cur = languages.find(l => l.code === currentLang);
+  if (cur) {
+    document.getElementById('lang-current-flag').innerHTML = cur.flag;
+    document.getElementById('lang-current-code').textContent = cur.code.toUpperCase();
+  }
+  // re-render quiz title and questions if quiz is active
+  if (currentGender) {
+    document.getElementById('quiz-title').textContent =
+      currentGender === 'female' ? t('quizTitleFemale') : t('quizTitleMale');
+    renderQuestions();
+  }
+}
+
+function renderLangMenu() {
+  const menu = document.getElementById('lang-menu');
+  menu.innerHTML = '';
+  languages.forEach(lang => {
+    const li = document.createElement('li');
+    li.setAttribute('role', 'option');
+    li.setAttribute('data-lang', lang.code);
+    if (lang.code === currentLang) li.classList.add('active');
+    li.innerHTML = `<span class="lang-flag">${lang.flag}</span><span class="lang-name">${lang.name}</span>`;
+    li.addEventListener('click', (e) => {
+      e.stopPropagation();
+      setLang(lang.code);
+      closeLangMenu();
+    });
+    menu.appendChild(li);
+  });
+}
+
+function toggleLangMenu(e) {
+  e.stopPropagation();
+  const toggle = document.getElementById('lang-toggle');
+  const btn = document.getElementById('lang-current');
+  const isOpen = toggle.classList.toggle('open');
+  btn.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
+}
+
+function closeLangMenu() {
+  const toggle = document.getElementById('lang-toggle');
+  toggle.classList.remove('open');
+  document.getElementById('lang-current').setAttribute('aria-expanded', 'false');
+}
+
+document.addEventListener('click', (e) => {
+  if (!document.getElementById('lang-toggle').contains(e.target)) closeLangMenu();
+});
+document.addEventListener('keydown', (e) => { if (e.key === 'Escape') closeLangMenu(); });
+
+function setLang(lang) {
+  if (!i18n[lang]) return;
+  currentLang = lang;
+  applyI18n();
+  renderLangMenu();
+}
+
+/* ============================================
+   SCORING CONFIG
+   ============================================ */
+const MAX = 500;
+const TIER_MAX = { A: 100, B: 70, C: 30 };
+const MULTIPLIER = { 0: 1.0, 1: 1.25, 2: 1.75, 3: 2.5 };
+
+const tierOf = {
+  female: {
+    age:'A', height:'A', figure:'A', cooking:'A', nagging:'A',
+    hairColor:'B', bust:'B', butt:'B', jealousy:'B', readyTime:'B',
+    hairLength:'C', eyeColor:'C', hipThrust:'C', thighGap:'C', shopping:'C'
+  },
+  male: {
+    age:'A', height:'A', body:'A', listening:'A', remembers:'A',
+    hairColor:'B', beard:'B', hairline:'B', handyman:'B', grilling:'B',
+    hairLength:'C', eyeColor:'C', hairyBack:'C', maxBench:'C', fart:'C'
+  }
+};
+
+/* numeric scoring returns pts for a value given a range table */
+function scoreRange(value, ranges) {
+  for (const r of ranges) {
+    if (value >= r.min && value <= r.max) return r.pts;
+  }
+  return 0;
+}
+
+const scoring = {
+  female: {
+    // Tier A (max 20 each) — dealbreakers
+    age:        [[18,19,15],[20,24,20],[25,29,18],[30,39,13],[40,49,8],[50,100,5]],
+    height:     [[140,154,8],[155,159,13],[160,164,17],[165,170,20],[171,175,16],[176,180,12],[181,220,8]],
+    figure:     { Thin:14, Sporty:20, Normal:16, Chubby:10, Fat:4 },
+    cooking:    { 'Burns boiled water':0, 'Microwave maestro':4, 'Home cook':12, 'Dinner party star':17, 'Chef-level':20 },
+    nagging:    { Never:20, Rarely:16, Sometimes:10, Often:4, Constant:0 },
+    // Tier B (max 14 each) — meaningful
+    hairColor:  { Blonde:14, Brown:12, Black:11, Red:9, Gray:5 },
+    bust:       { Lemons:8, Oranges:12, Grapefruits:14, Melons:11, Watermelons:7 },
+    butt:       { 'Flat as a board':5, Petite:8, Juicy:12, Bootylicious:14, 'Baby got back':10 },
+    jealousy:   { None:11, Low:14, Moderate:9, High:3, Extreme:0 },
+    readyTime:  { 'Under 15 min':14, '15-30 min':11, '30-60 min':7, '1-2 hours':3, '2+ hours':0 },
+    // Tier C (max 6 each) — minor & comedic
+    hairLength: { 'Very short':3, Short:4, 'Shoulder-length':5, Long:6, 'Waist-length':5 },
+    eyeColor:   { Blue:6, Green:5, Gray:5, Brown:4 },
+    hipThrust:  { "Doesn't thrust":2, 'Just the bar (20 kg)':3, 'One plate (60 kg)':4, 'Two plates (100 kg)':5, 'Many, many plates':6 },
+    thighGap:   { 'Grand canyon':3, 'Classic gap':6, 'Peek-a-boo':5, 'They touch':3, 'Thick thighs save lives':2 },
+    shopping:   { 'Allergic to shopping':4, 'Only when needed':6, 'Recreational':3, 'Weekend warrior':1, 'Lives at the mall':0 }
+  },
+  male: {
+    // Tier A (max 20 each) — dealbreakers
+    age:        [[18,22,11],[23,27,16],[28,38,20],[39,45,17],[46,55,12],[56,100,7]],
+    height:     [[140,164,5],[165,169,9],[170,174,13],[175,179,16],[180,184,18],[185,190,20],[191,195,17],[196,220,13]],
+    body:       { Muscular:20, Athletic:18, Normal:14, 'Dad bod':8, Fat:3 },
+    listening:  { 'Never listens':0, Rarely:4, Sometimes:10, Usually:16, Always:20 },
+    remembers:  { 'Never remembers':0, Rarely:5, Sometimes:11, Usually:17, Always:20 },
+    // Tier B (max 14 each) — meaningful
+    hairColor:  { Black:14, Brown:13, Blonde:12, Red:8, Gray:5 },
+    beard:      { "Tries, but can't":2, 'Clean shaven':11, Stubble:14, Medium:14, Full:11 },
+    hairline:   { Full:14, 'Slight recession':11, 'Shaved bald':9, Receding:6, 'Balding on top':3 },
+    handyman:   { "Doesn't lift a finger":0, 'Calls a guy':4, 'Changes lightbulbs':8, Capable:12, Master:14 },
+    grilling:   { 'Burns everything':2, 'Edible-ish':5, 'Holds his own':9, 'Flame whisperer':12, 'BBQ master':14 },
+    // Tier C (max 6 each) — minor & comedic
+    hairLength: { Short:6, Medium:6, Bald:4, Long:5 },
+    eyeColor:   { Blue:6, Green:5, Gray:5, Brown:4 },
+    hairyBack:  { None:6, 'A few stragglers':5, Light:4, Moderate:2, 'Full gorilla':1 },
+    maxBench:   { "Doesn't bench":2, 'Just the bar (20 kg)':3, 'One plate (60 kg)':4, 'Two plates (100 kg)':5, 'Many, many plates':6 },
+    fart:       { Silent:3, Audible:5, 'Loud & proud':6, 'Earth-shaking':4, 'Nose-melting':2 }
+  }
+};
+
+/* ============================================
+   QUESTIONS
+   ============================================ */
+const questions = {
+  female: [
+    { key:'age', label:{en:'Age',cs:'Věk'}, type:'range', min:18, max:65, default:29, unitKey:'yearsUnit' },
+    { key:'height', label:{en:'Height',cs:'Výška'}, type:'range', min:140, max:200, default:164, unitKey:'cmUnit' },
+    { key:'hairColor', label:{en:'Hair color',cs:'Barva vlasů'}, type:'options', opts:[
+      {key:'Blonde', en:'Blonde', cs:'Blond'},
+      {key:'Brown', en:'Brown', cs:'Hnědé'},
+      {key:'Black', en:'Black', cs:'Černé'},
+      {key:'Red', en:'Red', cs:'Zrzavé'},
+      {key:'Gray', en:'Gray', cs:'Šedé'}
+    ]},
+    { key:'hairLength', label:{en:'Hair length',cs:'Délka vlasů'}, type:'options', opts:[
+      {key:'Very short', en:'Very short', cs:'Velmi krátké'},
+      {key:'Short', en:'Short', cs:'Krátké'},
+      {key:'Shoulder-length', en:'Shoulder-length', cs:'Po ramena'},
+      {key:'Long', en:'Long', cs:'Dlouhé'},
+      {key:'Waist-length', en:'Waist-length', cs:'Až do pasu'}
+    ]},
+    { key:'eyeColor', label:{en:'Eye color',cs:'Barva očí'}, type:'options', opts:[
+      {key:'Blue', en:'Blue', cs:'Modrá'},
+      {key:'Green', en:'Green', cs:'Zelená'},
+      {key:'Gray', en:'Gray', cs:'Šedá'},
+      {key:'Brown', en:'Brown', cs:'Hnědá'}
+    ]},
+    { key:'figure', label:{en:'Figure',cs:'Postava'}, type:'options', opts:[
+      {key:'Thin', en:'Thin', cs:'Hubená'},
+      {key:'Sporty', en:'Sporty', cs:'Sportovní'},
+      {key:'Normal', en:'Normal', cs:'Normální'},
+      {key:'Chubby', en:'Chubby', cs:'Při těle'},
+      {key:'Fat', en:'Fat', cs:'Tlustá'}
+    ]},
+    { key:'bust', label:{en:'Boobs',cs:'Prsa'}, type:'options', opts:[
+      {key:'Lemons', en:'Lemons', cs:'Citrony'},
+      {key:'Oranges', en:'Oranges', cs:'Pomeranče'},
+      {key:'Grapefruits', en:'Grapefruits', cs:'Grepy'},
+      {key:'Melons', en:'Melons', cs:'Melouny'},
+      {key:'Watermelons', en:'Watermelons', cs:'Vodní melouny'}
+    ]},
+    { key:'butt', label:{en:'Butt',cs:'Zadek'}, type:'options', opts:[
+      {key:'Flat as a board', en:'Flat as a board', cs:'Žehlicí prkno'},
+      {key:'Petite', en:'Petite', cs:'Drobeček'},
+      {key:'Juicy', en:'Juicy', cs:'Šťavnatý'},
+      {key:'Bootylicious', en:'Bootylicious', cs:'Brazilský sen'},
+      {key:'Baby got back', en:'Baby got back', cs:'Jak skříň'}
+    ]},
+    { key:'thighGap', label:{en:'Thigh gap',cs:'Mezera mezi stehny'}, type:'options', opts:[
+      {key:'Grand canyon', en:'Grand canyon', cs:'Grand Canyon'},
+      {key:'Classic gap', en:'Classic gap', cs:'Klasická mezera'},
+      {key:'Peek-a-boo', en:'Peek-a-boo', cs:'Náznak'},
+      {key:'They touch', en:'They touch', cs:'Dotýkají se'},
+      {key:'Thick thighs save lives', en:'Thick thighs save lives', cs:'Jak dvě šunky'}
+    ]},
+    { key:'hipThrust', label:{en:'Max hip thrust',cs:'Maximální hip thrust'}, type:'options', opts:[
+      {key:"Doesn't thrust", en:"Doesn't thrust", cs:'Necvičí'},
+      {key:'Just the bar (20 kg)', en:'Just the bar (20 kg)', cs:'Jen tyč (20 kg)'},
+      {key:'One plate (60 kg)', en:'One plate (60 kg)', cs:'Jeden kotouč (60 kg)'},
+      {key:'Two plates (100 kg)', en:'Two plates (100 kg)', cs:'Dva kotouče (100 kg)'},
+      {key:'Many, many plates', en:'Many, many plates', cs:'Hromada kotoučů'}
+    ]},
+    { key:'cooking', label:{en:'Cooking ability',cs:'Vaření'}, type:'options', opts:[
+      {key:'Burns boiled water', en:'Burns boiled water', cs:'Spálí i vodu'},
+      {key:'Microwave maestro', en:'Microwave maestro', cs:'Mistryně mikrovlnky'},
+      {key:'Home cook', en:'Home cook', cs:'Vaří na úrovni'},
+      {key:'Dinner party star', en:'Dinner party star', cs:'Hvězda večeří'},
+      {key:'Chef-level', en:'Chef-level', cs:'Šéfkuchařka'}
+    ]},
+    { key:'nagging', label:{en:'Nagging',cs:'Rejpání'}, type:'options', opts:[
+      {key:'Never', en:'Never', cs:'Vůbec'},
+      {key:'Rarely', en:'Rarely', cs:'Zřídka'},
+      {key:'Sometimes', en:'Sometimes', cs:'Občas'},
+      {key:'Often', en:'Often', cs:'Často'},
+      {key:'Constant', en:'Constant', cs:'Pořád'}
+    ]},
+    { key:'jealousy', label:{en:'Jealousy level',cs:'Žárlivost'}, type:'options', opts:[
+      {key:'None', en:'None', cs:'Žádná'},
+      {key:'Low', en:'Low', cs:'Slabá'},
+      {key:'Moderate', en:'Moderate', cs:'Střední'},
+      {key:'High', en:'High', cs:'Silná'},
+      {key:'Extreme', en:'Extreme', cs:'Šílená'}
+    ]},
+    { key:'readyTime', label:{en:'Time to get ready',cs:'Než vyjde z domu'}, type:'options', opts:[
+      {key:'Under 15 min', en:'Under 15 min', cs:'Do 15 minut'},
+      {key:'15-30 min', en:'15-30 min', cs:'15–30 minut'},
+      {key:'30-60 min', en:'30-60 min', cs:'Půl hodiny až hodina'},
+      {key:'1-2 hours', en:'1-2 hours', cs:'Hodina nebo dvě'},
+      {key:'2+ hours', en:'2+ hours', cs:'Půlden v koupelně'}
+    ]},
+    { key:'shopping', label:{en:'Shopping endurance',cs:'Vytrvalost v obchoďáku'}, type:'options', opts:[
+      {key:'Allergic to shopping', en:'Allergic to shopping', cs:'Alergie na obchoďáky'},
+      {key:'Only when needed', en:'Only when needed', cs:'Jen když musí'},
+      {key:'Recreational', en:'Recreational', cs:'Pro radost'},
+      {key:'Weekend warrior', en:'Weekend warrior', cs:'Každou sobotu'},
+      {key:'Lives at the mall', en:'Lives at the mall', cs:'Vlastní klíče od obchoďáku'}
+    ]}
+  ],
+  male: [
+    { key:'age', label:{en:'Age',cs:'Věk'}, type:'range', min:18, max:70, default:33, unitKey:'yearsUnit' },
+    { key:'height', label:{en:'Height',cs:'Výška'}, type:'range', min:150, max:210, default:178, unitKey:'cmUnit' },
+    { key:'hairColor', label:{en:'Hair color',cs:'Barva vlasů'}, type:'options', opts:[
+      {key:'Blonde', en:'Blonde', cs:'Blond'},
+      {key:'Brown', en:'Brown', cs:'Hnědé'},
+      {key:'Black', en:'Black', cs:'Černé'},
+      {key:'Red', en:'Red', cs:'Zrzavé'},
+      {key:'Gray', en:'Gray', cs:'Šedé'}
+    ]},
+    { key:'hairLength', label:{en:'Hair length',cs:'Délka vlasů'}, type:'options', opts:[
+      {key:'Long', en:'Long', cs:'Dlouhé'},
+      {key:'Medium', en:'Medium', cs:'Střední'},
+      {key:'Short', en:'Short', cs:'Krátké'},
+      {key:'Bald', en:'Bald', cs:'Vyholené'}
+    ]},
+    { key:'hairline', label:{en:'Hairline',cs:'Linie vlasů'}, type:'options', opts:[
+      {key:'Full', en:'Full', cs:'Plná'},
+      {key:'Slight recession', en:'Slight recession', cs:'Mírné kouty'},
+      {key:'Receding', en:'Receding', cs:'Ustupující'},
+      {key:'Balding on top', en:'Balding on top', cs:'Pleš nahoře'},
+      {key:'Shaved bald', en:'Shaved bald', cs:'Vyholená'}
+    ]},
+    { key:'eyeColor', label:{en:'Eye color',cs:'Barva očí'}, type:'options', opts:[
+      {key:'Blue', en:'Blue', cs:'Modrá'},
+      {key:'Green', en:'Green', cs:'Zelená'},
+      {key:'Gray', en:'Gray', cs:'Šedá'},
+      {key:'Brown', en:'Brown', cs:'Hnědá'}
+    ]},
+    { key:'beard', label:{en:'Beard',cs:'Vousy'}, type:'options', opts:[
+      {key:"Tries, but can't", en:"Tries, but can't", cs:'Snaží se, marně'},
+      {key:'Clean shaven', en:'Clean shaven', cs:'Hladce oholený'},
+      {key:'Stubble', en:'Stubble', cs:'Strniště'},
+      {key:'Medium', en:'Medium', cs:'Pěstěný'},
+      {key:'Full', en:'Full', cs:'Plnovous'}
+    ]},
+    { key:'body', label:{en:'Body type',cs:'Postava'}, type:'options', opts:[
+      {key:'Muscular', en:'Muscular', cs:'Svalovec'},
+      {key:'Athletic', en:'Athletic', cs:'Atlet'},
+      {key:'Normal', en:'Normal', cs:'Normální'},
+      {key:'Dad bod', en:'Dad bod', cs:'Pivní bříško'},
+      {key:'Fat', en:'Fat', cs:'Tlustý'}
+    ]},
+    { key:'hairyBack', label:{en:'Back hair',cs:'Chlupy na zádech'}, type:'options', opts:[
+      {key:'None', en:'None', cs:'Žádné'},
+      {key:'A few stragglers', en:'A few stragglers', cs:'Pár chloupků'},
+      {key:'Light', en:'Light', cs:'Mírné'},
+      {key:'Moderate', en:'Moderate', cs:'Slušná porce'},
+      {key:'Full gorilla', en:'Full gorilla', cs:'Pravá gorila'}
+    ]},
+    { key:'maxBench', label:{en:'Max bench press',cs:'Maximální bench press'}, type:'options', opts:[
+      {key:"Doesn't bench", en:"Doesn't bench", cs:'Necvičí'},
+      {key:'Just the bar (20 kg)', en:'Just the bar (20 kg)', cs:'Jen tyč (20 kg)'},
+      {key:'One plate (60 kg)', en:'One plate (60 kg)', cs:'Jeden kotouč (60 kg)'},
+      {key:'Two plates (100 kg)', en:'Two plates (100 kg)', cs:'Dva kotouče (100 kg)'},
+      {key:'Many, many plates', en:'Many, many plates', cs:'Hromada kotoučů'}
+    ]},
+    { key:'handyman', label:{en:'Handyman / DIY ability',cs:'Kutilství'}, type:'options', opts:[
+      {key:"Doesn't lift a finger", en:"Doesn't lift a finger", cs:'Nehne ani prstem'},
+      {key:'Calls a guy', en:'Calls a guy', cs:'Zavolá řemeslníka'},
+      {key:'Changes lightbulbs', en:'Changes lightbulbs', cs:'Vymění žárovku'},
+      {key:'Capable', en:'Capable', cs:'Šikovný'},
+      {key:'Master', en:'Master', cs:'Zlaté ručičky'}
+    ]},
+    { key:'grilling', label:{en:'Grilling ability',cs:'Grilování'}, type:'options', opts:[
+      {key:'Burns everything', en:'Burns everything', cs:'Všechno spálí'},
+      {key:'Edible-ish', en:'Edible-ish', cs:'Skoro k snědku'},
+      {key:'Holds his own', en:'Holds his own', cs:'Něco zvládne'},
+      {key:'Flame whisperer', en:'Flame whisperer', cs:'Zaříkávač plamenů'},
+      {key:'BBQ master', en:'BBQ master', cs:'Mistr grilu'}
+    ]},
+    { key:'listening', label:{en:'Listening skills',cs:'Umí poslouchat'}, type:'options', opts:[
+      {key:'Never listens', en:'Never listens', cs:'Vůbec'},
+      {key:'Rarely', en:'Rarely', cs:'Zřídka'},
+      {key:'Sometimes', en:'Sometimes', cs:'Občas'},
+      {key:'Usually', en:'Usually', cs:'Většinou'},
+      {key:'Always', en:'Always', cs:'Vždycky'}
+    ]},
+    { key:'remembers', label:{en:'Important date recall',cs:'Pamatuje si výročí'}, type:'options', opts:[
+      {key:'Never remembers', en:'Never remembers', cs:'Nikdy'},
+      {key:'Rarely', en:'Rarely', cs:'Zřídka'},
+      {key:'Sometimes', en:'Sometimes', cs:'Občas'},
+      {key:'Usually', en:'Usually', cs:'Většinou'},
+      {key:'Always', en:'Always', cs:'Vždycky'}
+    ]},
+    { key:'fart', label:{en:'Fart volume',cs:'Hlasitost prdů'}, type:'options', opts:[
+      {key:'Silent', en:'Silent', cs:'Tiché'},
+      {key:'Audible', en:'Audible', cs:'Slyšitelné'},
+      {key:'Loud & proud', en:'Loud & proud', cs:'Na celý barák'},
+      {key:'Earth-shaking', en:'Earth-shaking', cs:'Otřese paneláky'},
+      {key:'Nose-melting', en:'Thunderous', cs:'Jako hrom'}
+    ]}
+  ]
+};
+
+/* ============================================
+   STATE + FLOW
+   ============================================ */
+let currentGender = null;
+let answers = {};
+
+function show(pageId) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.getElementById(pageId).classList.add('active');
+  const langToggle = document.getElementById('lang-toggle');
+  if (langToggle) {
+    if (pageId === 'landing') langToggle.classList.remove('hidden');
+    else { langToggle.classList.add('hidden'); closeLangMenu(); }
+  }
+  window.scrollTo({top:0, behavior:'instant'});
+}
+
+function goHome() {
+  currentGender = null;
+  answers = {};
+  updateProgress();
+  show('landing');
+}
+
+function startQuiz(gender) {
+  currentGender = gender;
+  answers = {};
+  document.getElementById('quiz-title').textContent =
+    gender === 'female' ? t('quizTitleFemale') : t('quizTitleMale');
+  renderQuestions();
+  updateProgress();
+  show('quiz');
+}
+
+function renderQuestions() {
+  const container = document.getElementById('questions');
+  container.innerHTML = '';
+  const qs = questions[currentGender];
+
+  qs.forEach((q, i) => {
+    const qDiv = document.createElement('div');
+    qDiv.className = 'question';
+    const label = q.label[currentLang];
+    qDiv.innerHTML = `<div class="q-head"><span class="q-num">${String(i+1).padStart(2,'0')}</span><span class="q-label">${label}</span></div>`;
+
+    if (q.type === 'range') {
+      if (answers[q.key] === undefined) answers[q.key] = q.default;
+      const currentVal = answers[q.key];
+      const wrap = document.createElement('div');
+      wrap.className = 'slider-wrap';
+      const unitText = t(q.unitKey);
+      wrap.innerHTML = `
+        <div class="slider-value"><span id="val-${q.key}">${currentVal}</span><span class="unit"> ${unitText}</span></div>
+        <input type="range" min="${q.min}" max="${q.max}" value="${currentVal}" id="slider-${q.key}" />
+      `;
+      qDiv.appendChild(wrap);
+      container.appendChild(qDiv);
+      const slider = document.getElementById(`slider-${q.key}`);
+      const valSpan = document.getElementById(`val-${q.key}`);
+      slider.addEventListener('input', e => {
+        const v = parseInt(e.target.value, 10);
+        answers[q.key] = v;
+        valSpan.textContent = v;
+        updateProgress();
+        hideCalcToast();
+      });
+    } else if (q.type === 'options') {
+      const opts = document.createElement('div');
+      opts.className = 'options';
+      q.opts.forEach(o => {
+        const btn = document.createElement('button');
+        btn.className = 'opt';
+        btn.textContent = o[currentLang];
+        btn.dataset.key = o.key;
+        if (answers[q.key] === o.key) btn.classList.add('selected');
+        btn.addEventListener('click', () => {
+          answers[q.key] = o.key;
+          opts.querySelectorAll('.opt').forEach(b => b.classList.remove('selected'));
+          btn.classList.add('selected');
+          updateProgress();
+          hideCalcToast();
+        });
+        opts.appendChild(btn);
+      });
+      qDiv.appendChild(opts);
+      container.appendChild(qDiv);
+    }
+  });
+}
+
+function updateProgress() {
+  if (!currentGender) { document.getElementById('progress').style.width = '0%'; return; }
+  const qs = questions[currentGender];
+  let filled = 0;
+  qs.forEach(q => { if (answers[q.key] !== undefined) filled++; });
+  const pct = (filled / qs.length) * 100;
+  document.getElementById('progress').style.width = pct + '%';
+}
+
+/* ============================================
+   CALCULATION
+   ============================================ */
+function calculate() {
+  const qs = questions[currentGender];
+  const missing = qs.filter(q => answers[q.key] === undefined);
+  if (missing.length) {
+    showCalcToast(t('pleaseAnswer'));
+    return;
+  }
+
+  const rules = scoring[currentGender];
+  const tMap = tierOf[currentGender];
+  const tierScores = { A: 0, B: 0, C: 0 };
+
+  qs.forEach(q => {
+    const answer = answers[q.key];
+    const rule = rules[q.key];
+    let pts = 0;
+    if (Array.isArray(rule)) {
+      for (const [min, max, p] of rule) {
+        if (answer >= min && answer <= max) { pts = p; break; }
+      }
+    } else {
+      pts = rule[answer] || 0;
+    }
+    tierScores[tMap[q.key]] += pts;
+  });
+
+  const base = tierScores.A + tierScores.B + tierScores.C;
+  const perfectA = tierScores.A === TIER_MAX.A;
+  const perfectB = tierScores.B === TIER_MAX.B;
+  const perfectC = tierScores.C === TIER_MAX.C;
+  const perfectCount = perfectA + perfectB + perfectC;
+  const multiplier = MULTIPLIER[perfectCount];
+  const finalScore = Math.min(Math.round(base * multiplier), MAX);
+
+  showResult(finalScore, { perfectA, perfectB, perfectC, perfectCount, tierScores, base, multiplier });
+}
+
+/* ============================================
+   VERDICT POOLS (en + cs)
+   ============================================ */
+const verdicts = {
+  en: {
+    mythicalF: [
+      "The Queen of Sheba incarnate. Empires will fall.",
+      "Folklore in a sundress. Disband the council.",
+      "A mirage that keeps walking toward you.",
+      "Suspiciously perfect. Check for seams.",
+      "Not a person. A rumor made flesh."
+    ],
+    mythicalM: [
+      "Legendary. Dispatch the caravans.",
+      "Oral histories are being composed.",
+      "The archetype. Other men are approximations.",
+      "Biblical. Rival sultans are mobilizing.",
+      "A walking monument. Someone light a torch."
+    ],
+    royaltyMissAF: [
+      "Ornate packaging. Contents: concerning.",
+      "A museum piece. Look, don't lease.",
+      "Flawless facade, structural concerns within.",
+      "The surface is immaculate. The interior is... an interior."
+    ],
+    royaltyMissAM: [
+      "Built like a god, raised by wolves.",
+      "Gorgeous specimen, hollow interior.",
+      "The exterior is pristine. The core is under construction.",
+      "A statue with opinions. Mostly wrong ones."
+    ],
+    royaltyMissBF: [
+      "Substance, personality, mild imperfections.",
+      "A real one, with one unfortunate edge.",
+      "Marriage material with a charming asterisk.",
+      "The kind you keep. The neighbors just won't understand why."
+    ],
+    royaltyMissBM: [
+      "All the right stuff, missing the polish.",
+      "Character abundant. Presentation negotiable.",
+      "A diamond in slightly unfortunate packaging.",
+      "Builds a shelf, forgets to shave. Worth it."
+    ],
+    royaltyMissCF: [
+      "Near-perfect. One charming quirk.",
+      "A rare find with a single asterisk.",
+      "Almost mythical. Accept the small flaw and move on.",
+      "Marriage-grade with a conversation starter."
+    ],
+    royaltyMissCM: [
+      "Near-perfect. One failure keeps him human.",
+      "Everything but the one embarrassing thing.",
+      "Marriage-grade with a mild punchline.",
+      "A diamond, slightly smudged. Polish later."
+    ],
+    extraAF: [
+      "Marriage material. No one will understand why. They will.",
+      "The foundations are solid. The paint job is... fine.",
+      "Reliable in all the ways that matter.",
+      "Perfectly suitable. In a 'raise three children' way."
+    ],
+    extraAM: [
+      "Solid on paper. Excellent paper.",
+      "Dependable. Invisibly so.",
+      "The bones are immaculate. The drywall needs work.",
+      "A functional husband. The rest is optional."
+    ],
+    extraBF: [
+      "Stunning. Also many things. Tread carefully.",
+      "A magazine cover with an unreadable article.",
+      "Beautiful. Genuinely. Please read the fine print.",
+      "Sculpted. In every way except character."
+    ],
+    extraBM: [
+      "Carved by artists, raised by television.",
+      "A sculpture that didn't come with a personality.",
+      "The package is magnificent. Do not open.",
+      "Jawline: yes. Everything else: under review."
+    ],
+    extraCF: [
+      "Entertaining company. The rest is a work in progress.",
+      "Funny, fit, fundamentally puzzling.",
+      "Excellent at parties. The mornings after, less so.",
+      "A human punchline in the good way."
+    ],
+    extraCM: [
+      "The life of the party. Possibly the entirety of his personality.",
+      "Charming on stage. Alarming in daylight.",
+      "Gym bro energy. Minimal substance.",
+      "Great for a weekend. A terrible Tuesday."
+    ],
+    highlyDesirable: [
+      "Above market rate. Noticeably.",
+      "The matchmakers are already gossiping.",
+      "A genuine catch. Neighbors will be insufferable.",
+      "Solid everywhere. Remarkable somewhere.",
+      "Worth writing home about. Twice.",
+      "A strong hand. Play it well."
+    ],
+    desirableF: ["Solid. The kind you marry and stop explaining."],
+    desirableM: ["Solid. The kind you marry and stop complaining."],
+    desirableShared: [
+      "Nothing obviously wrong. That's half the battle.",
+      "A good trade. Neither side is robbed.",
+      "Fair market plus a small premium.",
+      "Above average in the ways that count."
+    ],
+    fair: [
+      "Unremarkable in a good way.",
+      "Mid-tier classics. Nothing to see here.",
+      "Throw in a goat. We have a deal.",
+      "Everyone knows someone like this. They're fine.",
+      "Fair market value. Haggle respectfully.",
+      "Perfectly adequate. Adequately perfect."
+    ],
+    needsWorkShared: [
+      "Manageable flaws. Negotiate firmly.",
+      "Haggle hard. Bring grandmother.",
+      "The neighbors will pretend not to notice.",
+      "Significant compromises required.",
+      "Add a carpet. A large one. The good kind."
+    ],
+    needsWorkF: ["A project. Some women enjoy renovations."],
+    needsWorkM: ["A fixer-upper. Some men enjoy being renovated."],
+    insulting: [
+      "The camels are offended.",
+      "Consider celibacy.",
+      "The dowry must include formal apologies.",
+      "Refund.",
+      "A donation may be more appropriate than a transaction.",
+      "Start over. Choose different parents."
+    ]
+  },
+  cs: {
+    mythicalF: [
+      "Královna ze Sáby. Pádu impérií se nevyhneme.",
+      "Pohádka v sukni. Rozpusťte parlament.",
+      "Fata morgána, která jde dál a dál.",
+      "Podezřele dokonalá. Někde to musí být nalepené.",
+      "Tohle není žena. Tohle je legenda v lidské podobě."
+    ],
+    mythicalM: [
+      "Legenda. Vyšlete karavany.",
+      "Bude se o něm zpívat u táboráku.",
+      "Originál. Zbytek mužů jsou jen kopie.",
+      "Biblický rozměr. Konkurenti se třesou.",
+      "Chodící pomník. Někdo zapalte louč."
+    ],
+    royaltyMissAF: [
+      "Hezký obal. S obsahem už je to slabší.",
+      "Muzejní kus. Koukat ano, brát ne.",
+      "Dokonalá fasáda, statika k zamyšlení.",
+      "Krásná na pohled. Uvnitř ještě nehotovo."
+    ],
+    royaltyMissAM: [
+      "Postavený jako bůh, vychovaný vlky.",
+      "Nádherný kus, uvnitř prázdno.",
+      "Venku jak z časopisu, uvnitř staveniště.",
+      "Socha s vlastním názorem. Většinou špatným."
+    ],
+    royaltyMissBF: [
+      "Charakter, povaha, drobné nedostatky.",
+      "Skvělá ženská. Jen ta jedna nešťastná hrana.",
+      "Materiál na manželku, jen s drobným ale.",
+      "Tu si bereš. Sousedi to akorát nepochopí."
+    ],
+    royaltyMissBM: [
+      "Vše podstatné má. Jen ten obal pokulhává.",
+      "Charakteru na rozdávání. Vzhled k diskusi.",
+      "Diamant v ne moc šťastném obalu.",
+      "Postaví poličku, oholit se zapomene. Bere se."
+    ],
+    royaltyMissCF: [
+      "Skoro dokonalá. S jedním milým zlozvykem.",
+      "Vzácný úlovek. Té drobnosti si nevšímej.",
+      "Téměř mýtická. Smiř se s tou maličkostí.",
+      "Vdavekschopná, jen má jedno téma navíc."
+    ],
+    royaltyMissCM: [
+      "Skoro dokonalý. Jedno selhání ho drží při zemi.",
+      "Vše až na tu jednu trapnou drobnost.",
+      "Manžel jak má být. S jednou pointou.",
+      "Diamant. Jen lehce ušpiněný. Vyleští se."
+    ],
+    extraAF: [
+      "Vdavekschopná. Nikdo nepochopí proč. Pak pochopí.",
+      "Základy pevné. Omítka taková obyčejná.",
+      "Spolehlivá ve všem podstatném.",
+      "Naprosto vhodná. Tak akorát na ty tři děti."
+    ],
+    extraAM: [
+      "Na papíře super. A je to skvělý papír.",
+      "Spolehlivý. Až nenápadně.",
+      "Kosti dobré, omítka by chtěla.",
+      "Funkční manžel. Zbytek je nadstandard."
+    ],
+    extraBF: [
+      "Krásná. A taky leccos dalšího. Opatrně.",
+      "Titulka časopisu, ale článek nečitelný.",
+      "Krása sama. Přečti si drobné písmo.",
+      "Vytesaná. Ve všem kromě charakteru."
+    ],
+    extraBM: [
+      "Vyřezaný umělci, vychovaný televizí.",
+      "Socha, ke které nepřišel návod.",
+      "Obal velkolepý. Otevírání nedoporučujeme.",
+      "Brada jako od sochaře. Zbytek se ještě posuzuje."
+    ],
+    extraCF: [
+      "Zábavná společnost. Zbytek se ladí.",
+      "Vtipná, fit, naprosto matoucí.",
+      "Hvězda večírku. Ráno už horší.",
+      "Pointa v lidské podobě. V tom dobrém."
+    ],
+    extraCM: [
+      "Duše večírku. Možná i celá jeho osobnost.",
+      "Na pódiu charisma. Ve dne hrůza.",
+      "Energie ze sokolovny. Obsahu málo.",
+      "Skvělý na víkend. V úterý katastrofa."
+    ],
+    highlyDesirable: [
+      "Nad tržní cenu. A znatelně.",
+      "Dohazovači už šeptají.",
+      "Skutečný úlovek. Sousedi budou nesnesitelní.",
+      "Pevný ve všem. Pozoruhodný v něčem.",
+      "Tohle se domů hlásí. A dvakrát.",
+      "Silná karta. Hraj ji dobře."
+    ],
+    desirableF: ["Slušná partie. Bereš a přestáváš to vysvětlovat."],
+    desirableM: ["Slušný chlap. Bereš a přestáváš si stěžovat."],
+    desirableShared: [
+      "Nic vyloženě špatně. To je půlka úspěchu.",
+      "Férová výměna. Nikdo nelituje.",
+      "Tržní cena s malou prémií.",
+      "Nadprůměr v tom, co se počítá."
+    ],
+    fair: [
+      "Nevýrazný v dobrém slova smyslu.",
+      "Standardní zboží. Nic mimořádného.",
+      "Přihoď kozu a máme to.",
+      "Každý někoho takového zná. Jsou v pohodě.",
+      "Tržní cena. Smlouvej slušně.",
+      "Adekvátní. A adekvátně dokonalý."
+    ],
+    needsWorkShared: [
+      "Vady jdou zvládnout. Smlouvej tvrdě.",
+      "Smlouvej. A vezmi babičku.",
+      "Sousedi budou předstírat, že to nevidí.",
+      "Bude to chtít kompromisy.",
+      "Přihoď koberec. Velký. Ten kvalitní."
+    ],
+    needsWorkF: ["Projekt. Některé ženy mají rády rekonstrukce."],
+    needsWorkM: ["K rekonstrukci. Některé ženy si rády vychovají chlapa."],
+    insulting: [
+      "Velbloudi se urazili.",
+      "Zvaž celibát.",
+      "Věno musí obsahovat omluvu.",
+      "Reklamace.",
+      "Spíš dar než obchod.",
+      "Začni od začátku. Vyber si jiné rodiče."
+    ]
+  }
+};
+
+/* ============================================
+   VERDICT SYSTEM
+   ============================================ */
+const pick = arr => arr[Math.floor(Math.random() * arr.length)];
+
+function getVerdict(score, info, ans, gender) {
+  const { perfectA, perfectB, perfectC, perfectCount } = info;
+  const F = gender === 'female';
+  const v = verdicts[currentLang];
+
+  // Mythical
+  if (perfectCount === 3) {
+    return { tierKey: 'tierMythical', verdict: pick(F ? v.mythicalF : v.mythicalM) };
+  }
+
+  // Royalty (2 perfect tiers)
+  if (perfectCount === 2) {
+    let pool;
+    if (!perfectA) pool = F ? v.royaltyMissAF : v.royaltyMissAM;
+    else if (!perfectB) pool = F ? v.royaltyMissBF : v.royaltyMissBM;
+    else pool = F ? v.royaltyMissCF : v.royaltyMissCM;
+    return { tierKey: 'tierRoyalty', verdict: pick(pool) };
+  }
+
+  // Extraordinary (1 perfect tier)
+  if (perfectCount === 1) {
+    let pool;
+    if (perfectA) pool = F ? v.extraAF : v.extraAM;
+    else if (perfectB) pool = F ? v.extraBF : v.extraBM;
+    else pool = F ? v.extraCF : v.extraCM;
+    return { tierKey: 'tierExtraordinary', verdict: pick(pool) };
+  }
+
+  // Score-based bands
+  if (score >= 170) return { tierKey: 'tierHighlyDesirable', verdict: pick(v.highlyDesirable) };
+  if (score >= 135) {
+    const pool = (F ? v.desirableF : v.desirableM).concat(v.desirableShared);
+    return { tierKey: 'tierDesirable', verdict: pick(pool) };
+  }
+  if (score >= 90) return { tierKey: 'tierFair', verdict: pick(v.fair) };
+  if (score >= 45) {
+    const pool = v.needsWorkShared.concat(F ? v.needsWorkF : v.needsWorkM);
+    return { tierKey: 'tierNeedsWork', verdict: pick(pool) };
+  }
+  return { tierKey: 'tierInsulting', verdict: pick(v.insulting) };
+}
+
+/* ============================================
+   COUNT-UP ANIMATION
+   ============================================ */
+function animateCount(el, target, duration = 1400) {
+  const startTime = performance.now();
+  function step(now) {
+    const t = Math.min((now - startTime) / duration, 1);
+    const eased = 1 - Math.pow(1 - t, 3); // easeOutCubic
+    el.textContent = Math.round(target * eased);
+    if (t < 1) requestAnimationFrame(step);
+    else el.textContent = target;
+  }
+  requestAnimationFrame(step);
+}
+
+/* ============================================
+   RESULT
+   ============================================ */
+let lastScore = 0;
+
+function showResult(score, info) {
+  const clamped = Math.max(0, Math.min(MAX, score));
+  lastScore = clamped;
+  const numEl = document.getElementById('result-number');
+  numEl.textContent = '0';
+
+  const { tierKey, verdict } = getVerdict(clamped, info, answers, currentGender);
+  document.getElementById('result-tier').textContent = t(tierKey);
+  document.getElementById('result-verdict').textContent = verdict;
+
+  // reset share toast between runs
+  const toast = document.getElementById('share-toast');
+  if (toast) { toast.textContent = ''; toast.classList.remove('show'); }
+
+  show('result');
+  // start animation after the page is shown
+  requestAnimationFrame(() => animateCount(numEl, clamped));
+}
+
+/* ============================================
+   SHARE
+   ============================================ */
+function shareResult(platform) {
+  const url = window.location.href.split('#')[0].split('?')[0];
+  const text = t('shareText')(lastScore);
+  const fullShare = `${text} ${url}`;
+
+  const shareUrls = {
+    whatsapp: `https://wa.me/?text=${encodeURIComponent(fullShare)}`,
+    x: `https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}&url=${encodeURIComponent(url)}`,
+    facebook: `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(url)}&quote=${encodeURIComponent(text)}`
+  };
+
+  if (platform === 'copy' || platform === 'instagram') {
+    const message = platform === 'instagram' ? t('toastInsta') : t('toastCopy');
+    copyToClipboard(fullShare, message);
+    return;
+  }
+
+  const shareUrl = shareUrls[platform];
+  if (shareUrl) {
+    window.open(shareUrl, '_blank', 'noopener,noreferrer,width=600,height=500');
+  }
+}
+
+function copyToClipboard(text, toastMessage) {
+  const finish = () => showShareToast(toastMessage);
+  const fail = () => showShareToast(t('toastFail'));
+
+  if (navigator.clipboard && window.isSecureContext) {
+    navigator.clipboard.writeText(text).then(finish).catch(() => {
+      legacyCopy(text) ? finish() : fail();
+    });
+  } else {
+    legacyCopy(text) ? finish() : fail();
+  }
+}
+
+function legacyCopy(text) {
+  try {
+    const ta = document.createElement('textarea');
+    ta.value = text;
+    ta.style.position = 'fixed';
+    ta.style.left = '-9999px';
+    document.body.appendChild(ta);
+    ta.select();
+    const ok = document.execCommand('copy');
+    document.body.removeChild(ta);
+    return ok;
+  } catch (e) {
+    return false;
+  }
+}
+
+function showShareToast(message) {
+  const toast = document.getElementById('share-toast');
+  if (!toast) return;
+  toast.textContent = message;
+  toast.classList.add('show');
+  clearTimeout(toast._timer);
+  toast._timer = setTimeout(() => toast.classList.remove('show'), 2600);
+}
+
+let _calcToastTimer = null;
+function showCalcToast(message) {
+  const toast = document.getElementById('calc-toast');
+  if (!toast) return;
+  toast.textContent = message;
+  toast.classList.add('show');
+  clearTimeout(_calcToastTimer);
+  _calcToastTimer = setTimeout(() => toast.classList.remove('show'), 4000);
+}
+
+function hideCalcToast() {
+  const toast = document.getElementById('calc-toast');
+  if (!toast) return;
+  clearTimeout(_calcToastTimer);
+  toast.classList.remove('show');
+}
+
+/* ============================================
+   SHARE IMAGE GENERATOR  (1080×1350, 4:5)
+   ============================================ */
+
+function _drawDunePath(ctx, sx, toY, cmds) {
+  ctx.beginPath();
+  for (const c of cmds) {
+    if      (c.t==='M') ctx.moveTo(c.x*sx, toY(c.y));
+    else if (c.t==='C') ctx.bezierCurveTo(c.x1*sx,toY(c.y1),c.x2*sx,toY(c.y2),c.x*sx,toY(c.y));
+    else if (c.t==='L') ctx.lineTo(c.x*sx, toY(c.y));
+  }
+  ctx.closePath();
+  ctx.fill();
+}
+
+function _divider(ctx, x1, y, x2) {
+  ctx.save();
+  ctx.strokeStyle = '#2a1a0e';
+  ctx.lineWidth = 1;
+  ctx.globalAlpha = 0.22;
+  ctx.beginPath(); ctx.moveTo(x1, y); ctx.lineTo(x2, y); ctx.stroke();
+  ctx.restore();
+}
+
+function _wrapText(ctx, text, cx, y, maxW, lh) {
+  const words = text.split(' ');
+  let line = '';
+  for (let i = 0; i < words.length; i++) {
+    const test = line ? line + ' ' + words[i] : words[i];
+    if (ctx.measureText(test).width > maxW && line) {
+      ctx.fillText(line, cx, y);
+      line = words[i]; y += lh;
+    } else { line = test; }
+  }
+  if (line) ctx.fillText(line, cx, y);
+}
+
+async function generateShareImage() {
+  // DOM-based font preload: Safari only decodes fonts it has actually painted.
+  // Render invisible elements for every canvas font spec before drawing.
+  const _pre = document.createElement('div');
+  _pre.setAttribute('aria-hidden', 'true');
+  _pre.style.cssText = 'position:fixed;left:-9999px;top:-9999px;opacity:0;pointer-events:none;white-space:nowrap;';
+  _pre.innerHTML = [
+    `<span style="font:800 300px/1 'EB Garamond',serif">138</span>`,
+    `<span style="font:italic 700 44px/1 'EB Garamond',serif">The Camel Calculator</span>`,
+    `<span style="font:italic 400 76px/1 'EB Garamond',serif">camels</span>`,
+    `<span style="font:600 italic 72px/1 'EB Garamond',serif">Desirable</span>`,
+    `<span style="font:400 44px/1 Jost,sans-serif">verdict text</span>`,
+    `<span style="font:500 20px/1 Jost,sans-serif">BRAND</span>`,
+  ].join('');
+  document.body.appendChild(_pre);
+
+  await document.fonts.ready;
+  await Promise.all([
+    document.fonts.load('800 300px "EB Garamond"'),
+    document.fonts.load('italic 700 44px "EB Garamond"'),
+    document.fonts.load('italic 400 76px "EB Garamond"'),
+    document.fonts.load('600 italic 72px "EB Garamond"'),
+    document.fonts.load('400 44px Jost'),
+    document.fonts.load('500 20px Jost'),
+  ]);
+  // Small yield so browser paints the preload elements before canvas reads fonts
+  await new Promise(r => setTimeout(r, 50));
+  document.body.removeChild(_pre);
+
+  const score    = lastScore;
+  const tierName = document.getElementById('result-tier').textContent;
+  const verdict  = document.getElementById('result-verdict').textContent;
+  const cs       = currentLang === 'cs';
+
+  const W = 1080, H = 1350;
+  const can = document.createElement('canvas');
+  can.width = W; can.height = H;
+  const ctx = can.getContext('2d');
+
+  const CREAM = '#f5ebd6', BROWN = '#2a1a0e', TERRA = '#c85a3d',
+        GOLD  = '#d4a24a', SAND  = '#e4c998', SOFT  = '#4a3422';
+
+  ctx.fillStyle = CREAM;
+  ctx.fillRect(0, 0, W, H);
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'alphabetic';
+
+  // ── Brand eyebrow — Jost 500, 0.28em spacing, terracotta ───────────────
+  // Matches .brand / eyebrow style on landing + result screens
+  ctx.fillStyle = TERRA;
+  try { ctx.letterSpacing = '0.35em'; } catch(e) {}
+  ctx.font = '500 20px Jost, sans-serif';
+  ctx.fillText(cs ? 'Z DÁVNÝCH DOB HEDVÁBNÉ STEZKY' : 'EST. SOMEWHERE NEAR THE SILK ROAD', W/2, 80);
+
+  // ── App title — EB Garamond italic 700, matches landing h1 ─────────────
+  ctx.fillStyle = BROWN;
+  try { ctx.letterSpacing = '0.02em'; } catch(e) {}
+  ctx.font = 'italic 700 44px "EB Garamond", serif';
+  ctx.fillText(cs ? 'Velbloudí kalkulačka' : 'The Camel Calculator', W/2, 136);
+
+  // ── Score — EB Garamond 800, -0.04em, matches .result-number ───────────
+  ctx.fillStyle = BROWN;
+  try { ctx.letterSpacing = '-0.04em'; } catch(e) {}
+  let nSz = 300;
+  ctx.font = `800 ${nSz}px "EB Garamond", serif`;
+  while (ctx.measureText(String(score)).width > W - 80 && nSz > 100) {
+    nSz -= 10;
+    ctx.font = `800 ${nSz}px "EB Garamond", serif`;
+  }
+  const scoreBaseline = 200 + nSz * 0.78;
+  ctx.fillText(String(score), W/2, scoreBaseline);
+  const scoreMetrics = ctx.measureText(String(score));
+  const scoreBottom  = scoreBaseline + scoreMetrics.actualBoundingBoxDescent;
+
+  // ── "camels" / "velbloudů" — EB Garamond italic 400, terracotta ─────────
+  // Matches .result-unit: font-family EB Garamond, italic 400, terracotta
+  const camelsSize = Math.round(nSz * 0.25);
+  ctx.font = `italic 400 ${camelsSize}px "EB Garamond", serif`;
+  try { ctx.letterSpacing = '0'; } catch(e) {}
+  const camelsLabel   = cs ? 'velbloudů' : 'camels';
+  const camelsMetrics = ctx.measureText(camelsLabel);
+  const camelsBaseline = scoreBottom + camelsMetrics.actualBoundingBoxAscent + 10;
+  ctx.fillStyle = TERRA;
+  ctx.fillText(camelsLabel, W/2, camelsBaseline);
+  const camelsBottom = camelsBaseline + camelsMetrics.actualBoundingBoxDescent;
+
+  // ── Tier — EB Garamond 600 italic, brown, matches .result-tier ──────────
+  // App: font-family EB Garamond, weight 600, italic, color brown, margin-top 20px
+  const tierSize = Math.round(nSz * 0.22); // app clamp(26,4vw,36) → 36px max at 390px; proportional
+  ctx.font = `600 italic ${tierSize}px "EB Garamond", serif`;
+  try { ctx.letterSpacing = '0'; } catch(e) {}
+  const tierMetrics  = ctx.measureText(tierName);
+  const tierGap      = Math.round(20 * W / 390);
+  const tierBaseline = camelsBottom + tierGap + tierMetrics.actualBoundingBoxAscent;
+  ctx.fillStyle = BROWN;
+  ctx.fillText(tierName, W/2, tierBaseline);
+  const tierBottom = tierBaseline + tierMetrics.actualBoundingBoxDescent;
+
+  // ── Verdict — Jost 400, brown-soft, matches .result-verdict ─────────────
+  // CRITICAL: .result-verdict has NO font-family → inherits body → Jost, sans-serif
+  // App: font-size 17px, color brown-soft (#4a3422), line-height 1.55
+  const verdictSize = Math.round(17 * W / 390); // scale 17px from 390px viewport → 47px at 1080
+  ctx.font = `400 ${verdictSize}px Jost, sans-serif`;
+  try { ctx.letterSpacing = '0'; } catch(e) {}
+  const verdictGap    = Math.round(16 * W / 390);
+  const verdictLineH  = Math.round(verdictSize * 1.55); // matches line-height: 1.55
+  const vM = ctx.measureText(verdict);
+  const verdictBaseline = tierBottom + verdictGap + vM.actualBoundingBoxAscent;
+  ctx.fillStyle = SOFT;
+  _wrapText(ctx, verdict, W/2, verdictBaseline, Math.round(W * 0.65), verdictLineH);
+
+  // Layer 1 – cream/sand (first occurrence — remove duplicate)
+  const DT = H - 480;
+  const DH = 480;
+  const sx = W / 1440;
+  const sy = DH / 140;
+  const toY = svgY => DT + (svgY - 80) * sy;
+
+  // ── URL footer — Jost 400, terracotta, just above dune start ───────────
+  const URL_TEXT = 'kraska0610.github.io/camel-calculator';
+  ctx.font = '400 24px Jost, sans-serif';
+  try { ctx.letterSpacing = '0.04em'; } catch(e) {}
+  ctx.fillStyle = TERRA;
+  ctx.globalAlpha = 0.7;
+  ctx.fillText(URL_TEXT, W/2, DT - 28);
+  ctx.globalAlpha = 1;
+
+  // Layer 1 – cream/sand
+  ctx.fillStyle = SAND; ctx.globalAlpha = 0.7;
+  _drawDunePath(ctx, sx, toY, [
+    {t:'M',x:0,y:140},{t:'C',x1:240,y1:80,x2:420,y2:180,x:720,y:120},
+    {t:'C',x1:1020,y1:60,x2:1200,y2:180,x:1440,y:100},{t:'L',x:1440,y:220},{t:'L',x:0,y:220}
+  ]);
+
+  // Layer 2 – gold
+  ctx.fillStyle = GOLD; ctx.globalAlpha = 1;
+  _drawDunePath(ctx, sx, toY, [
+    {t:'M',x:0,y:180},{t:'C',x1:200,y1:140,x2:500,y2:200,x:800,y:160},
+    {t:'C',x1:1100,y1:120,x2:1260,y2:200,x:1440,y:160},{t:'L',x:1440,y:220},{t:'L',x:0,y:220}
+  ]);
+
+  // Layer 3 – terracotta
+  ctx.fillStyle = TERRA; ctx.globalAlpha = 0.85;
+  _drawDunePath(ctx, sx, toY, [
+    {t:'M',x:0,y:210},{t:'C',x1:300,y1:190,x2:600,y2:220,x:900,y:200},
+    {t:'C',x1:1200,y1:180,x2:1320,y2:220,x:1440,y:205},{t:'L',x:1440,y:220},{t:'L',x:0,y:220}
+  ]);
+
+  ctx.globalAlpha = 1;
+  return can;
+}
+
+async function shareImageCard() {
+  const btn = document.getElementById('shareImgBtn');
+  if (btn) btn.disabled = true;
+  try {
+    const canvas = await generateShareImage();
+    const blob   = await new Promise(res => canvas.toBlob(res, 'image/png'));
+    const file   = new File([blob], 'camel-value.png', { type: 'image/png' });
+
+    const SITE_URL = 'https://kraska0610.github.io/camel-calculator/';
+    if (navigator.canShare && navigator.canShare({ files: [file] })) {
+      await navigator.share({
+        files: [file],
+        title: 'The Camel Calculator',
+        url:   SITE_URL,
+      });
+    } else {
+      const a = document.createElement('a');
+      a.download = 'camel-value.png';
+      a.href = URL.createObjectURL(blob);
+      a.click();
+      setTimeout(() => URL.revokeObjectURL(a.href), 30000);
+    }
+  } catch(e) {
+    if (e.name !== 'AbortError') console.error('Image share error:', e);
+  } finally {
+    if (btn) btn.disabled = false;
+  }
+}
+renderLangMenu();
+applyI18n();
+</script>
+</body>
+</html>
